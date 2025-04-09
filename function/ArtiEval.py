@@ -1,8 +1,8 @@
 from zhipuai import ZhipuAI
 import requests
 import os
-with open('test.txt', 'r', encoding='utf-8') as file:
-    file_content = file.read()
+# with open('test.txt', 'r', encoding='utf-8') as file:
+#     file_content = file.read()
 def article_evaluation(file_content):
     """
     评估文章的函数，先输入文章内容，生成评语，再根据评语生成评分。
@@ -48,4 +48,3 @@ def article_evaluation(file_content):
     )
     score = response.choices[0].message.content
     return comment, score
-print(article_evaluation(file_content))
