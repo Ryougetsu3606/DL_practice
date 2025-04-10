@@ -1,2 +1,4 @@
 # DL_practice
-For USTC DeepLearning Practice Homework (especailly hw2, developing an app using API)
+## 第二次作业：超绝最强究极作文生成打分一体化系统
+- 利用大模型免费接口（为保护隐私，需用户自行输入），对文章进行评价和评分，以此促进用户的作文水平。
+- 抓取开放作文网站上的文章，方便用户学习。

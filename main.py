@@ -2,12 +2,17 @@ import tkinter as tk
 from tkinter import messagebox
 from function import ArtiEval, GetArti
 import json
+import random
 
 class DLApp:
-    def __init__(self, root, api, standard):
+    def __init__(self, root):
         self.root = root
-        self.api = api
-        self.standard = standard
+        try:
+            with open("option.json", "r", encoding="utf-8") as f:
+                options = json.load(f)
+        except:
+            options = {"API": " ", "AI评分标准": "easing"}
+        self.api, self.standard = options["API"], options["AI评分标准"]
         self.setup_window()
         self.create_widgets()
 
@@ -34,15 +39,19 @@ class DLApp:
 
     def create_widgets(self):
         # 顶部标题
-        title_label = tk.Label(self.root, text="超绝最强究极作文生成打分一体化系统 v1.0", font=("SimSun", 20), bg="lightgray")
+        title_label = tk.Label(self.root, bg="lightgray", font=("SimSun", 20))
+        title_text = "超绝最强究极作文生成打分一体化系统"
+        colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
+        bias = random.randint(0, len(colors))
+        for i, char in enumerate(title_text):
+            color = colors[(i+bias) % len(colors)]
+            title_label_text = tk.Label(title_label, text=char, fg=color, bg="lightgray", font=("SimSun", 20))
+            title_label_text.pack(side=tk.LEFT)
         title_label.pack(pady=15)
 
         # 左侧按钮栏
         button_frame = tk.Frame(self.root, width=100, bg="lightgray", padx=10, pady=10)
         button_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
-
-        generate_button = tk.Button(button_frame, text="小作文生成", width=15)
-        generate_button.pack(pady=14)
 
         appreciate_button = tk.Button(button_frame, text="佳作共赏", command=self.fetch_article, width=15)
         appreciate_button.pack(pady=14)
@@ -152,6 +161,12 @@ class DLApp:
         self.manual_window.resizable(False, False)
 
     def open_settings_window(self):
+        try:
+            with open("option.json", "r", encoding="utf-8") as f:
+                options = json.load(f)
+        except:
+            options = {"API": " ", "AI评分标准": "easing"}
+
         if hasattr(self, 'settings_window') and self.settings_window.winfo_exists():
             self.settings_window.lift()
             return
@@ -200,12 +215,6 @@ class DLApp:
 
 
 if __name__ == "__main__":
-    try:
-        with open("option.json", "r", encoding="utf-8") as f:
-            options = json.load(f)
-    except:
-        options = {"API": " ", "AI评分标准": "easing"}
-    api, standard = options["API"], options["AI评分标准"]
     root = tk.Tk()
-    app = DLApp(root, api, standard)
+    app = DLApp(root)
     root.mainloop()
