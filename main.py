@@ -1,9 +1,13 @@
 import tkinter as tk
+from tkinter import messagebox
 from function import ArtiEval, GetArti
+import json
 
 class DLApp:
-    def __init__(self, root):
+    def __init__(self, root, api, standard):
         self.root = root
+        self.api = api
+        self.standard = standard
         self.setup_window()
         self.create_widgets()
 
@@ -46,8 +50,11 @@ class DLApp:
         evaluate_button = tk.Button(button_frame, text="AI打分", command=self.evaluate_article, width=15)
         evaluate_button.pack(pady=14)
 
-        manual_button = tk.Button(button_frame, text="使用说明", width=15)
+        manual_button = tk.Button(button_frame, text="使用说明", command=self.show_manual, width=15)
         manual_button.pack(pady=14)
+
+        option_button = tk.Button(button_frame, text="设置", command=self.open_settings_window, width=15)
+        option_button.pack(pady=14)
 
         # 右侧内容区域
         content_frame = tk.Frame(self.root, bg="lightgray")
@@ -94,7 +101,7 @@ class DLApp:
     def evaluate_article(self):
         article = self.article_text.get(1.0, tk.END).strip()
         if article:
-            comment, score = ArtiEval.article_evaluation(article)
+            comment, score = ArtiEval.article_evaluation(article, self.api, self.standard)
             self.comment_text.configure(state=tk.NORMAL)
             self.comment_text.delete(1.0, tk.END)
             self.comment_text.insert(tk.END, comment)
@@ -113,8 +120,92 @@ class DLApp:
             self.score_text.insert(tk.END, "N/A")
             self.score_text.configure(state=tk.DISABLED)
 
+    def show_manual(self):
+        if hasattr(self, 'manual_window') and self.manual_window.winfo_exists():
+            self.manual_window.lift()
+            return
+
+        manual_text = (
+            "\n使用说明：\n\n"
+            "1.第一次使用前，请先登录智谱官网https://www.bigmodel.cn/console/overview，随后点击右上角进入“个人中心”->“API_Keys”->“添加新的API_Key”，并把所得的Key复制并填入本程序“设置”的“API”中。执行该步骤后，你的API只会保存在本地，不存在泄露风险，可以放心使用。\n\n"
+            "2.界面主体部分为输入框，你可以在上面尽情挥洒你的才华，或点击“佳作共赏”，获取一篇精选文章。\n\n"
+            "3.点击“AI打分”，可以调用GLM-4大模型对当前文章进行评分。注意：使用代理连接会使此功能失效。\n\n"
+            "4.点击“设置”按钮，可以修改当前使用的API，或变更AI打分标准。"
+        )
+        self.manual_window = tk.Toplevel(self.root)
+        self.manual_window.title("使用说明")
+        self.manual_window.geometry("600x450")
+        self.manual_window.configure(bg="white")
+
+        # 使用 Text 小部件以便更好地控制布局和滚动
+        text_frame = tk.Frame(self.manual_window, bg="white")
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        manual_text_widget = tk.Text(
+            text_frame, wrap=tk.WORD, font=("SimSun", 12), bg="white", relief=tk.FLAT
+        )
+        manual_text_widget.insert(tk.END, manual_text)
+        manual_text_widget.configure(state=tk.DISABLED)
+        manual_text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # 禁止窗口拉伸
+        self.manual_window.resizable(False, False)
+
+    def open_settings_window(self):
+        if hasattr(self, 'settings_window') and self.settings_window.winfo_exists():
+            self.settings_window.lift()
+            return
+
+        self.settings_window = tk.Toplevel(self.root)
+        self.settings_window.title("设置")
+        self.settings_window.geometry("400x250")
+        self.settings_window.configure(bg="lightgray")
+        self.settings_window.resizable(False, False)
+
+        # API设置
+        api_label = tk.Label(self.settings_window, text="API：", font=("SimSun", 12), bg="lightgray", anchor="w")
+        api_label.pack(pady=10, padx=10, anchor="w")
+
+        api_entry = tk.Entry(self.settings_window, font=("SimSun", 10), width=50)
+        api_entry.insert(0, options.get("API", ""))
+        api_entry.pack(pady=5, padx=10, anchor="w")
+
+        # AI评分标准设置
+        standard_var = tk.StringVar(value=options.get("AI评分标准", "easing"))
+        standard_label_frame = tk.LabelFrame(self.settings_window, text="选择评分标准", font=("SimSun", 12), bg="lightgray", padx=10, pady=10)
+        standard_label_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+        easing_radio = tk.Radiobutton(standard_label_frame, text="宽松(建议)", variable=standard_var, value="easing", font=("SimSun", 10), bg="lightgray", anchor="w")
+        easing_radio.pack(anchor="w", pady=5)
+
+        strict_radio = tk.Radiobutton(standard_label_frame, text="严格", variable=standard_var, value="strict", font=("SimSun", 10), bg="lightgray", anchor="w")
+        strict_radio.pack(anchor="w", pady=5)
+
+        # 确认修改按钮
+        def save_settings():
+            new_api = api_entry.get().strip()
+            new_standard = standard_var.get()
+            self.api = new_api
+            self.standard = new_standard
+            options["API"] = new_api
+            options["AI评分标准"] = new_standard
+            with open("option.json", "w", encoding="utf-8") as f:
+                json.dump(options, f, ensure_ascii=False, indent=4)
+            self.api = new_api
+            tk.messagebox.showinfo("提示", "设置已保存！")
+            self.settings_window.destroy()
+
+        save_button = tk.Button(self.settings_window, text="确认修改", font=("SimSun", 10), command=save_settings)
+        save_button.pack(padx=20, pady=10, anchor="w")
+
 
 if __name__ == "__main__":
+    try:
+        with open("option.json", "r", encoding="utf-8") as f:
+            options = json.load(f)
+    except:
+        options = {"API": " ", "AI评分标准": "easing"}
+    api, standard = options["API"], options["AI评分标准"]
     root = tk.Tk()
-    app = DLApp(root)
+    app = DLApp(root, api, standard)
     root.mainloop()
